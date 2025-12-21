@@ -119,6 +119,17 @@
             font-size: 14px;
             color: #475569;
         }
+
+        .install-instructions {
+            background: #fffbeb;
+            border: 1px solid #fbbf24;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #92400e;
+            display: none;
+        }
         
         @media (max-width: 480px) {
             body {
@@ -168,47 +179,125 @@
             </div>
         </div>
         
-        <button class="install-btn" onclick="installPWA()">
+        <button id="installButton" class="install-btn">
             📲 Install Mobile App
         </button>
+
+        <div id="installInstructions" class="install-instructions">
+            <strong>Installation Instructions:</strong><br>
+            <span id="instructionsText"></span>
+        </div>
         
         <div class="pwa-info">
             <strong>About PWA:</strong> This Progressive Web App works like a native mobile app. Install it for full-screen experience, offline access, and faster loading.
         </div>
     </div>
 
-    <!-- Service Worker Registration -->
+    <!-- Enhanced PWA Installation Script -->
     <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
+        let deferredPrompt;
+        const installButton = document.getElementById('installButton');
+        const installInstructions = document.getElementById('installInstructions');
+        const instructionsText = document.getElementById('instructionsText');
+
+        // Check if app is already installed
+        window.addEventListener('load', () => {
+            // Check display mode
+            if (window.matchMedia('(display-mode: standalone)').matches) {
+                installButton.style.display = 'none';
+                console.log('App is already installed and running in standalone mode');
+            }
+
+            // Register service worker
+            if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('/sw.js')
                     .then(registration => {
-                        console.log('ServiceWorker registered:', registration);
+                        console.log('ServiceWorker registration successful:', registration.scope);
                     })
                     .catch(error => {
                         console.log('ServiceWorker registration failed:', error);
                     });
-            });
-        }
-        
-        function installPWA() {
-            if (window.deferredPrompt) {
-                window.deferredPrompt.prompt();
-                window.deferredPrompt.userChoice.then(choiceResult => {
-                    if (choiceResult.outcome === 'accepted') {
-                        console.log('User accepted install');
-                    }
-                    window.deferredPrompt = null;
-                });
+            }
+        });
+
+        // Listen for beforeinstallprompt event
+        window.addEventListener('beforeinstallprompt', (e) => {
+            console.log('beforeinstallprompt event fired');
+            // Prevent Chrome 76+ from automatically showing the prompt
+            e.preventDefault();
+            // Stash the event so it can be triggered later
+            deferredPrompt = e;
+            
+            // Update button text
+            installButton.textContent = '📲 Tap to Install App';
+            installButton.style.display = 'block';
+            
+            // Show installation instructions
+            showInstallInstructions();
+        });
+
+        // Listen for app installed event
+        window.addEventListener('appinstalled', (evt) => {
+            console.log('PWA was installed successfully');
+            installButton.style.display = 'none';
+            installInstructions.style.display = 'none';
+        });
+
+        // Install button click handler
+        installButton.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                // Show the install prompt
+                deferredPrompt.prompt();
+                
+                // Wait for the user to respond to the prompt
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to the install prompt: ${outcome}`);
+                
+                // We no longer need the prompt
+                deferredPrompt = null;
+                
+                // Hide the install button
+                installButton.style.display = 'none';
+                installInstructions.style.display = 'none';
             } else {
-                alert('To install: On mobile, use "Add to Home Screen" in browser menu');
+                // Show manual instructions
+                showInstallInstructions();
+            }
+        });
+
+        // Function to show platform-specific instructions
+        function showInstallInstructions() {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            const isAndroid = /Android/.test(navigator.userAgent);
+            const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+            
+            let instructions = '';
+            
+            if (isIOS) {
+                instructions = 'For iPhone/iPad:<br>1. Tap the Share icon (📤)<br>2. Scroll down<br>3. Tap "Add to Home Screen"';
+            } else if (isAndroid && isChrome) {
+                instructions = 'For Android Chrome:<br>1. Tap the menu (⋮)<br>2. Tap "Add to Home Screen"<br>3. Tap "Add"';
+            } else if (isAndroid) {
+                instructions = 'For Android:<br>1. Tap menu (⋮)<br>2. Look for "Install app" or "Add to Home Screen"';
+            } else {
+                instructions = 'Open this page on a mobile device to install as an app.';
+            }
+            
+            instructionsText.innerHTML = instructions;
+            installInstructions.style.display = 'block';
+            
+            // Also update button if no deferred prompt
+            if (!deferredPrompt) {
+                installButton.textContent = '📱 How to Install';
             }
         }
-        
-        // Trigger install prompt
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            window.deferredPrompt = e;
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check immediately for install capability
+            if (!deferredPrompt) {
+                showInstallInstructions();
+            }
         });
     </script>
 </body>
