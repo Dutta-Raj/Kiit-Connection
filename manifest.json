@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "KIIT Connect",
   "short_name": "KIIT Connect",
   "description": "Campus navigation and management app for KIIT University",
@@ -50,27 +50,5 @@
     }
   ],
   "categories": ["education", "navigation", "utilities"],
-  "prefer_related_applications": false,
-  "shortcuts": [
-    {
-      "name": "Campus Map",
-      "short_name": "Map",
-      "description": "Open campus map",
-      "url": "/dashboard?shortcut=map"
-    },
-    {
-      "name": "Find Cafeteria",
-      "short_name": "Food",
-      "description": "Find nearest cafeteria",
-      "url": "/dashboard?shortcut=cafeteria"
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/static/screenshots/mobile-1.png",
-      "sizes": "720x1280",
-      "type": "image/png",
-      "form_factor": "narrow"
-    }
-  ]
+  "prefer_related_applications": false
 }

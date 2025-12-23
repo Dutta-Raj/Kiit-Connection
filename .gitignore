@@ -31,6 +31,17 @@ Thumbs.db
 *.swp
 *.swo
 
+# Secrets
+secrets.json
+credentials.json
+*.pem
+*.key
+serviceAccountKey.json
+
+# Firebase
+.firebase/
+firebase-config.js
+
 # Logs
 *.log
 logs/
@@ -39,12 +50,6 @@ logs/
 temp/
 tmp/
 
-# Secrets
-secrets.json
-credentials.json
-*.pem
-*.key
-
 # Coverage
 .coverage
 htmlcov/
@@ -52,4 +57,6 @@ htmlcov/
 # Build
 build/
 dist/
-*.egg-info/
+*.egg-info/.env 
+__pycache__/ 
+*.pyc 

@@ -1,4 +1,4 @@
-﻿from flask import Flask, render_template, jsonify, request, session, redirect, url_for
+﻿from flask import Flask, render_template, jsonify, request, session, redirect, send_from_directory
 from flask_cors import CORS
 from pymongo import MongoClient
 from bson import ObjectId, json_util
@@ -10,45 +10,38 @@ from datetime import datetime
 import jwt
 from functools import wraps
 
-# Load environment variables
 load_dotenv()
 
-app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+app = Flask(__name__, static_folder='static')
+app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-change-in-prod')
 CORS(app)
 
-# Configuration
-app.config['JWT_SECRET'] = os.environ.get('JWT_SECRET', 'jwt-secret-key-change-me')
+# PWA Configuration
+app.config['JWT_SECRET'] = os.environ.get('JWT_SECRET', 'jwt-secret-change-me')
+app.config['PWA_NAME'] = 'KIIT Connect'
+app.config['PWA_THEME_COLOR'] = '#1a237e'
 
-# MongoDB Connection from .env
+# MongoDB Connection
 MONGODB_URI = os.environ.get('MONGODB_URI')
-
-if not MONGODB_URI:
-    print("⚠️ MONGODB_URI not found in .env file!")
-    client = None
-else:
+if MONGODB_URI:
     try:
         client = MongoClient(MONGODB_URI)
         client.admin.command('ping')
         print("✅ Connected to MongoDB Atlas!")
+        
+        db = client['kiit_connect']
+        users_collection = db['users']
+        cafeterias_collection = db['cafeterias']
+        hostels_collection = db['hostels']
+        print("✅ Database initialized!")
     except Exception as e:
-        print(f"❌ MongoDB Connection Error: {e}")
+        print(f"❌ MongoDB Error: {e}")
         client = None
-
-# Database setup
-if client:
-    db = client['kiit_connect']
-    users_collection = db['users']
-    # Collections will be empty initially
-    cafeterias_collection = db['cafeterias']
-    hostels_collection = db['hostels']
-    print("✅ Database 'kiit_connect' ready!")
 else:
-    db = None
-    users_collection = None
-    cafeterias_collection = None
-    hostels_collection = None
+    print("⚠️ MONGODB_URI not found in .env")
+    client = None
 
+# Helper functions
 def mongo_to_json(data):
     return json.loads(json_util.dumps(data))
 
@@ -56,7 +49,6 @@ def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         token = request.headers.get('Authorization')
-        
         if not token or not token.startswith('Bearer '):
             return jsonify({'success': False, 'message': 'Login required!'}), 401
         
@@ -66,31 +58,34 @@ def token_required(f):
             user = users_collection.find_one({'email': data['email']}) if users_collection else None
             if not user:
                 return jsonify({'success': False, 'message': 'User not found!'}), 401
+            request.user = user
         except:
             return jsonify({'success': False, 'message': 'Invalid token!'}), 401
         
-        return f(user, *args, **kwargs)
+        return f(*args, **kwargs)
     return decorated
 
-# ========== ROUTES ==========
+# ========== PWA ROUTES ==========
+@app.route('/manifest.json')
+def manifest():
+    return send_from_directory('.', 'manifest.json')
 
-# Main login page (only accessible page without login)
+@app.route('/service-worker.js')
+def service_worker():
+    return send_from_directory('.', 'service-worker.js'), 200, {'Content-Type': 'application/javascript'}
+
+# ========== MAIN ROUTES ==========
 @app.route('/')
 def index():
-    # If already logged in, redirect to dashboard
-    if 'user_email' in session:
-        return redirect('/dashboard')
-    return render_template('index.html')
+    return render_template('index.html', pwa_name=app.config['PWA_NAME'])
 
-# Dashboard page (protected)
 @app.route('/dashboard')
 def dashboard():
     if 'user_email' not in session:
         return redirect('/')
-    return render_template('kiitnav.html', 
-                         username=session.get('user_name', 'User'))
+    return render_template('kiitnav.html', username=session.get('user_name', 'User'))
 
-# API: Login with email/password
+# ========== AUTH API ==========
 @app.route('/api/login', methods=['POST'])
 def api_login():
     if not users_collection:
@@ -103,17 +98,15 @@ def api_login():
     user = users_collection.find_one({'email': email})
     
     if user and bcrypt.checkpw(password.encode('utf-8'), user['password']):
-        # Create session
         session['user_email'] = email
         session['user_name'] = user.get('name', 'User')
         session['user_id'] = str(user['_id'])
         
-        # Create JWT token
         token = jwt.encode({
             'email': email,
             'user_id': str(user['_id']),
             'role': user.get('role', 'student'),
-            'exp': datetime.utcnow().timestamp() + 86400  # 24 hours
+            'exp': datetime.utcnow().timestamp() + 86400
         }, app.config['JWT_SECRET'])
         
         return jsonify({
@@ -127,9 +120,8 @@ def api_login():
             }
         })
     
-    return jsonify({'success': False, 'message': 'Invalid credentials'}), 401
+    return jsonify({'success': False, 'message': 'Invalid email or password'}), 401
 
-# API: Register new user
 @app.route('/api/register', methods=['POST'])
 def api_register():
     if not users_collection:
@@ -139,35 +131,30 @@ def api_register():
     email = data.get('email')
     password = data.get('password')
     name = data.get('name', '')
-    student_id = data.get('student_id', '')
     
-    # Check if email already exists
+    if not email or not password:
+        return jsonify({'success': False, 'message': 'Email and password required'}), 400
+    
     if users_collection.find_one({'email': email}):
         return jsonify({'success': False, 'message': 'Email already registered'}), 400
     
-    # Hash password
     hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
     
-    # Create user document
     user_data = {
         'email': email,
         'password': hashed_password,
         'name': name,
-        'student_id': student_id,
         'role': 'student',
         'created_at': datetime.utcnow(),
         'last_login': datetime.utcnow()
     }
     
-    # Insert into database
     result = users_collection.insert_one(user_data)
     
-    # Auto login after registration
     session['user_email'] = email
     session['user_name'] = name
     session['user_id'] = str(result.inserted_id)
     
-    # Create JWT token
     token = jwt.encode({
         'email': email,
         'user_id': str(result.inserted_id),
@@ -186,111 +173,87 @@ def api_register():
         }
     })
 
-# API: Logout
 @app.route('/api/logout', methods=['POST'])
 def api_logout():
     session.clear()
     return jsonify({'success': True, 'message': 'Logged out successfully'})
 
-# ========== PROTECTED API ENDPOINTS ==========
-
-# API: Get user profile (requires login)
-@app.route('/api/profile', methods=['GET'])
-@token_required
-def api_profile(current_user):
-    user_data = current_user.copy()
-    user_data.pop('password', None)  # Remove password
-    return jsonify({'success': True, 'data': mongo_to_json(user_data)})
-
-# API: Get cafeterias (empty initially - requires login)
+# ========== DATA API ==========
 @app.route('/api/cafeterias', methods=['GET'])
 @token_required
-def api_cafeterias(current_user):
-    if not cafeterias_collection:
-        return jsonify({'success': False, 'message': 'Database not available'}), 500
-    
-    cafeterias = list(cafeterias_collection.find({}))
+def api_cafeterias():
+    cafeterias = list(cafeterias_collection.find({})) if cafeterias_collection else []
     return jsonify({'success': True, 'data': mongo_to_json(cafeterias)})
 
-# API: Get hostels (empty initially - requires login)
 @app.route('/api/hostels', methods=['GET'])
 @token_required
-def api_hostels(current_user):
-    if not hostels_collection:
-        return jsonify({'success': False, 'message': 'Database not available'}), 500
-    
-    hostels = list(hostels_collection.find({}))
+def api_hostels():
+    hostels = list(hostels_collection.find({})) if hostels_collection else []
     return jsonify({'success': True, 'data': mongo_to_json(hostels)})
 
-# API: Add cafeteria (admin feature - requires login)
-@app.route('/api/cafeterias', methods=['POST'])
+@app.route('/api/locations', methods=['GET'])
 @token_required
-def api_add_cafeteria(current_user):
-    if current_user.get('role') != 'admin':
-        return jsonify({'success': False, 'message': 'Admin access required'}), 403
-    
+def api_locations():
+    try:
+        with open('data/locations.json', 'r') as f:
+            locations = json.load(f)
+        return jsonify({'success': True, 'data': locations})
+    except:
+        return jsonify({'success': False, 'message': 'Locations not found'}), 404
+
+@app.route('/api/personnel', methods=['GET'])
+@token_required
+def api_personnel():
+    try:
+        with open('data/personnel.json', 'r') as f:
+            personnel = json.load(f)
+        return jsonify({'success': True, 'data': personnel})
+    except:
+        return jsonify({'success': False, 'message': 'Personnel not found'}), 404
+
+# ========== CHATBOT API ==========
+@app.route('/api/chatbot', methods=['POST'])
+@token_required
+def api_chatbot():
     data = request.get_json()
+    message = data.get('message', '').lower()
     
-    cafeteria_data = {
-        'name': data.get('name'),
-        'location': data.get('location'),
-        'cuisine': data.get('cuisine', []),
-        'opening_hours': data.get('opening_hours'),
-        'rating': data.get('rating', 0),
-        'created_by': current_user['_id'],
-        'created_at': datetime.utcnow()
+    responses = {
+        'hostel': 'We have King\'s Palace (boys) and Queen\'s Castle (girls) hostels. Use the map to locate them.',
+        'cafeteria': 'Food Court 1 (Campus Center) and Cafe Coffee Day (Near Library) are open 8AM-10PM.',
+        'library': 'Central Library is open 8AM-10PM. KIMS Library is in Campus 6.',
+        'academic': 'Academic blocks are in Campus 3, 7, 8, 12, 14, 15, 16, 17, and 25.',
+        'sports': 'We have cricket field, indoor stadium, football stadium, and hockey stadium.',
+        'admin': 'Administrative offices are in Campus 3. Visit for any official work.',
+        'hello': 'Hello! I\'m your KIIT campus assistant. Ask me about hostels, cafeterias, or directions.',
+        'help': 'I can help you find: hostels, cafeterias, libraries, academic blocks, sports facilities.'
     }
     
-    result = cafeterias_collection.insert_one(cafeteria_data)
-    return jsonify({'success': True, 'id': str(result.inserted_id)})
+    response = "I'm not sure about that. Try asking about hostels, cafeterias, libraries, or directions."
+    for key in responses:
+        if key in message:
+            response = responses[key]
+            break
+    
+    return jsonify({
+        'success': True,
+        'response': response
+    })
 
-# API: Add hostel (admin feature - requires login)
-@app.route('/api/hostels', methods=['POST'])
-@token_required
-def api_add_hostel(current_user):
-    if current_user.get('role') != 'admin':
-        return jsonify({'success': False, 'message': 'Admin access required'}), 403
-    
-    data = request.get_json()
-    
-    hostel_data = {
-        'name': data.get('name'),
-        'type': data.get('type'),
-        'capacity': data.get('capacity'),
-        'warden': data.get('warden'),
-        'contact': data.get('contact'),
-        'facilities': data.get('facilities', []),
-        'created_by': current_user['_id'],
-        'created_at': datetime.utcnow()
-    }
-    
-    result = hostels_collection.insert_one(hostel_data)
-    return jsonify({'success': True, 'id': str(result.inserted_id)})
-
-# Health check
+# ========== HEALTH CHECK ==========
 @app.route('/api/health', methods=['GET'])
 def api_health():
     db_status = 'connected' if client else 'disconnected'
     return jsonify({
         'status': 'ok',
         'database': db_status,
-        'authenticated': 'user_email' in session,
-        'app': 'KIIT Connect'
+        'app': 'KIIT Connect',
+        'pwa': True,
+        'version': '1.0.0'
     })
 
-# ========== ERROR HANDLERS ==========
-
-@app.errorhandler(404)
-def not_found(error):
-    return jsonify({'success': False, 'message': 'Endpoint not found'}), 404
-
-@app.errorhandler(500)
-def server_error(error):
-    return jsonify({'success': False, 'message': 'Internal server error'}), 500
-
 # ========== MAIN ==========
-
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('FLASK_ENV', 'development') == 'development'
-    app.run(host='0.0.0.0', port=port, debug=debug)
+    app.run(host='0.0.0.0', port=port, debug=debug, use_reloader=False)
