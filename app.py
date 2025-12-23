@@ -1,4 +1,4 @@
-﻿from flask import Flask, render_template, jsonify, request, session, redirect, url_for
+﻿from flask import Flask, render_template, jsonify, request, session, redirect, url_for, send_from_directory
 import os
 import json
 from dotenv import load_dotenv
@@ -19,30 +19,31 @@ app.config['FIREBASE_CONFIG'] = {
     'appId': os.environ.get('FIREBASE_APP_ID')
 }
 app.config['MAPTILER_API_KEY'] = os.environ.get('MAPTILER_API_KEY')
-app.config['ADMIN_EMAIL'] = os.environ.get('ADMIN_EMAIL', 'riddhipdas@gmail.com')
+app.config['ADMIN_EMAIL'] = os.environ.get('ADMIN_EMAIL', 'rajdeepdutta104@gmail.com')
 
-# Simple user database (in production, use Firebase authentication)
+# Simple user database
 USERS = {
     'student@kiit.ac.in': 'password123',
     'admin@kiit.ac.in': 'admin123',
-    os.environ.get('ADMIN_EMAIL', 'riddhipdas@gmail.com'): 'admin123'  # Your admin email
+    'rajdeepdutta104@gmail.com': 'admin123'
 }
 
 # Check if user is logged in
 def is_logged_in():
     return 'user' in session
 
-# Home route - shows login or KIITnav based on auth
+# Home route
 @app.route('/')
 def index():
     if is_logged_in():
         # User is logged in - show KIITnav interface
         return render_template('kiitnav.html', 
                              username=session['user'],
+                             admin_email=app.config['ADMIN_EMAIL'],
                              firebase_config=app.config['FIREBASE_CONFIG'],
                              maptiler_key=app.config['MAPTILER_API_KEY'])
     else:
-        # Not logged in - show login/landing page
+        # Not logged in - show login page
         return render_template('index.html')
 
 # Login endpoint
@@ -71,20 +72,20 @@ def logout():
     session.pop('is_admin', None)
     return redirect(url_for('index'))
 
-# PWA assets
+# Serve static files
 @app.route('/manifest.json')
 def manifest():
-    return app.send_static_file('manifest.json')
+    return send_from_directory('static', 'manifest.json')
 
 @app.route('/sw.js')
 def service_worker():
-    return app.send_static_file('sw.js'), 200, {'Content-Type': 'application/javascript'}
+    return send_from_directory('static', 'sw.js'), 200, {'Content-Type': 'application/javascript'}
 
 @app.route('/icon-<size>.png')
 def icon(size):
-    return app.send_static_file(f'icon-{size}.png')
+    return send_from_directory('static', f'icon-{size}.png')
 
-# API endpoint for your KIITnav data
+# API endpoints
 @app.route('/api/locations')
 def get_locations():
     try:
@@ -92,26 +93,7 @@ def get_locations():
             locations = json.load(f)
         return jsonify(locations)
     except FileNotFoundError:
-        # Return sample data if file doesn't exist
-        return jsonify({
-            'academic': [
-                {"name": "Campus 3 Academic Block", "lat": 20.296059, "lng": 85.824539},
-                {"name": "Campus 7 Academic Block", "lat": 20.297000, "lng": 85.825000}
-            ],
-            'hostels': [
-                {"name": "King's Palace 1", "lat": 20.354401, "lng": 85.820217},
-                {"name": "Queen's Castle 1", "lat": 20.352478, "lng": 85.818092}
-            ],
-            'cafeterias': [
-                {"name": "Main Cafeteria", "lat": 20.295000, "lng": 85.823000}
-            ],
-            'libraries': [
-                {"name": "Central Library", "lat": 20.354055, "lng": 85.816373}
-            ],
-            'sports': [
-                {"name": "Cricket Field", "lat": 20.357353, "lng": 85.817941}
-            ]
-        })
+        return jsonify([])
 
 @app.route('/api/personnel')
 def get_personnel():
@@ -120,29 +102,7 @@ def get_personnel():
             personnel = json.load(f)
         return jsonify(personnel)
     except FileNotFoundError:
-        # Return sample personnel data
-        return jsonify([
-            {
-                "title": "Director General",
-                "name": "Prof. Sasmita Samanta",
-                "office": "Campus 3, Administrative Block",
-                "room": "DG Office, 3rd Floor",
-                "campus": "Campus 3",
-                "phone": "0674-272-7777",
-                "lat": 20.3555,
-                "lng": 85.8188
-            },
-            {
-                "title": "Dean - School of Computer Engineering",
-                "name": "Prof. Amiya Kumar Rath",
-                "office": "Campus 3",
-                "room": "Room 301, CS Building",
-                "campus": "Campus 3",
-                "phone": "0674-272-8888",
-                "lat": 20.3555,
-                "lng": 85.8188
-            }
-        ])
+        return jsonify([])
 
 # Health check
 @app.route('/health')
@@ -150,14 +110,16 @@ def health():
     return jsonify({
         'status': 'ok', 
         'authenticated': is_logged_in(),
-        'app': os.environ.get('APP_NAME', 'KIIT Connect'),
-        'debug': os.environ.get('DEBUG', 'False') == 'True'
+        'app': 'KIIT Connect',
+        'version': '2.0.0'
     })
 
-# Serve static files
-@app.route('/static/<path:filename>')
-def static_files(filename):
-    return app.send_static_file(filename)
+# Serve any other static file
+@app.route('/<path:filename>')
+def serve_file(filename):
+    if filename in ['manifest.json', 'sw.js', 'icon-192.png', 'icon-512.png']:
+        return send_from_directory('static', filename)
+    return "File not found", 404
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
