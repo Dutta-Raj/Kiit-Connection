@@ -1,0 +1,484 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KIITnav - Campus Navigator</title>
+    
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    
+    <!-- QR Code Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <style>
+        /* COPY ALL YOUR ORIGINAL CSS HERE */
+        /* This includes all the styles for:
+           - Map container
+           - Chatbot
+           - Hostel listings (KP, QC)
+           - Cafeterias, Libraries, Sports
+           - Layer switcher
+           - Search functionality
+           - HVI modal
+           - Everything else from your original
+        */
+        
+        :root {
+            --bg: #f4f7fb;
+            --panel: #ffffff;
+            --border: #dfe3e8;
+            --text: #1c1f23;
+            --muted: #6b7b8c;
+            --brand: #60f321;
+            --brand-hover: #4cbe15;
+            --radius: 14px;
+            --shadow: 0 4px 18px rgba(0,0,0,.1);
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .app {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            height: 100vh;
+        }
+        
+        .nav {
+            background: var(--panel);
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 18px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+        }
+        
+        .logo-badge {
+            width: 32px;
+            height: 32px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            background: var(--brand);
+            color: #fff;
+            font-weight: 800;
+        }
+        
+        /* ... CONTINUE WITH ALL YOUR ORIGINAL CSS ... */
+        
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- NAVIGATION HEADER -->
+        <header class="nav">
+            <div class="logo">
+                <div class="logo-badge">K</div>
+                <div>
+                    <div style="font-weight:800;letter-spacing:.3px">KIITnav</div>
+                    <div style="font-size:12px;color:var(--muted)">Explore Campus • Cafeterias • Hostels</div>
+                </div>
+            </div>
+            
+            <!-- Search Bar -->
+            <div class="nav-middle">
+                <div class="nav-search-wrap">
+                    <input id="global-search" placeholder="Search locations or officials..." autocomplete="off" />
+                    <div id="nav-suggestion-list"></div>
+                </div>
+            </div>
+            
+            <div class="nav-actions">
+                <button id="btn-login" class="btn secondary">Sign in</button>
+                <button id="find-me" class="btn primary">📍 My Location</button>
+                <button id="btn-qr" class="btn secondary">📱 QR</button>
+            </div>
+        </header>
+        
+        <!-- MAIN CONTENT -->
+        <main class="layout">
+            <!-- LEFT SIDEBAR - Locations List -->
+            <section class="panel place-list">
+                <div class="panel-header">
+                    Explore <span id="place-count">(0)</span>
+                </div>
+                <div class="panel-body">
+                    <div class="chips">
+                        <div class="chip active" data-type="all">All</div>
+                        <div class="chip" data-type="academic">Academic</div>
+                        <div class="chip" data-type="hostel">Hostel</div>
+                        <div class="chip" data-type="cafeteria">Cafeteria</div>
+                        <div class="chip" data-type="library">Library</div>
+                        <div class="chip" data-type="sports">Sports</div>
+                        <div class="chip" data-type="admin">Admin</div>
+                    </div>
+                    
+                    <div class="places-container" id="places-container">
+                        <!-- Dynamic content will be loaded here -->
+                        <!-- KP Hostels, QC Hostels, Libraries, Cafeterias, Sports, etc -->
+                    </div>
+                </div>
+            </section>
+            
+            <!-- RIGHT SIDE - Map -->
+            <section class="panel map">
+                <div class="panel-header">Map View</div>
+                <div class="panel-body">
+                    <div id="map"></div>
+                    
+                    <!-- Map Layer Switcher -->
+                    <div class="map-layer-switcher">
+                        <div class="layer-switcher-header">🗺️ Map View</div>
+                        <div class="layer-option active" data-layer="streets">
+                            <span class="layer-icon">🏙️</span>
+                            <span class="layer-label">Streets</span>
+                        </div>
+                        <div class="layer-option" data-layer="satellite">
+                            <span class="layer-icon">🛰️</span>
+                            <span class="layer-label">Satellite</span>
+                        </div>
+                        <div class="layer-option" data-layer="terrain">
+                            <span class="layer-icon">⛰️</span>
+                            <span class="layer-label">Terrain</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <!-- CHATBOT -->
+    <div id="chatbot-container">
+        <div id="chatbot-header">
+            <div class="chatbot-logo">
+                <div class="chatbot-logo-badge">K</div>
+                <div class="chatbot-title">KIITnav Assistant</div>
+            </div>
+            <div class="chatbot-header-actions">
+                <button id="chatbot-refresh" class="chatbot-header-btn">🔄</button>
+                <button id="chatbot-help-btn" class="chatbot-header-btn">❓</button>
+                <button id="chatbot-toggle" class="chatbot-header-btn">−</button>
+            </div>
+        </div>
+        
+        <div id="chatbot-messages">
+            <div class="message bot-message">
+                <p>Hello! I'm your KIIT Connect assistant. I can show locations on the map and help you find university officials!</p>
+            </div>
+        </div>
+        
+        <div class="quick-suggestions">
+            <div class="quick-suggestion" data-question="Show Central Library">📍 Central Library</div>
+            <div class="quick-suggestion" data-question="Where is Director General">👔 Director General</div>
+            <div class="quick-suggestion" data-question="Show all hostels">🏠 All Hostels</div>
+            <div class="quick-suggestion" data-question="Find cricket field">⚽ Cricket Field</div>
+        </div>
+        
+        <div id="chatbot-input">
+            <input type="text" id="user-input" placeholder="Ask about locations or personnel...">
+            <button id="send-btn">➤</button>
+        </div>
+    </div>
+    
+    <!-- QR MODAL -->
+    <div id="qr-modal" class="qr-modal">
+        <div class="qr-modal-content">
+            <div class="qr-modal-title">Scan to open this page</div>
+            <div class="qr-box" id="qr-box"></div>
+            <div style="font-size:13px;color:var(--muted);">Scan with any mobile camera or QR scanner</div>
+            <div class="qr-controls">
+                <button id="download-qr" class="btn primary">Download QR</button>
+                <button id="close-qr" class="btn secondary">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- HVI MODAL (For officials) -->
+    <div id="hvi-modal" class="hvi-modal">
+        <div class="hvi-modal-content">
+            <!-- HVI modal content from your original -->
+        </div>
+    </div>
+    
+    <script>
+        // CONFIGURATION
+        const CONFIG = {
+            firebase: {
+                apiKey: "AIzaSyAvdVw_yOQtxvSd9MTU_hRz1AD6RDCaQ0A",
+                authDomain: "navigator-4a29d.firebaseapp.com",
+                projectId: "navigator-4a29d",
+                storageBucket: "navigator-4a29d.firebasestorage.app",
+                messagingSenderId: "670551267892",
+                appId: "1:670551267892:web:3c7f7a66c53f262adcc861",
+            },
+            adminEmail: "{{ admin_email|default('rajdeepdutta104@gmail.com') }}",
+            mapKey: "{{ maptiler_key|default('1DAJJ44xYcqv8JcwhP0L') }}"
+        };
+        
+        // Initialize Firebase
+        const app = firebase.initializeApp(CONFIG.firebase);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        
+        // Initialize Map
+        let map;
+        let markers = [];
+        
+        function initMap() {
+            map = L.map('map', {
+                center: [20.3549, 85.8185],
+                zoom: 16,
+                minZoom: 10,
+                maxZoom: 22
+            });
+            
+            // Add tile layer
+            L.tileLayer(`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${CONFIG.mapKey}`, {
+                tileSize: 512,
+                zoomOffset: -1,
+                maxZoom: 22,
+                attribution: '© MapTiler © OpenStreetMap'
+            }).addTo(map);
+        }
+        
+        // PRELOAD DATA - COPY ALL YOUR ORIGINAL DATA HERE
+        const preload = [
+            // Academic Blocks
+            {name: "Campus 3 Academic Block", type: "academic", lat: 20.352761729599813, lng: 85.81724230083005},
+            {name: "Campus 7 Academic Block", type: "academic", lat: 20.350520271622248, lng: 85.82070018739302},
+            {name: "Campus 8 Academic Block", type: "academic", lat: 20.35099617352404, lng: 85.82057163453852},
+            // ... ALL YOUR ACADEMIC BLOCKS
+            
+            // KP Hostels
+            {name: "King's Palace 1", type: "hostel", lat: 20.35440136062493, lng: 85.82021742698775},
+            {name: "King's Palace 2", type: "hostel", lat: 20.354766719102646, lng: 85.81905247116465},
+            {name: "King's Palace 3", type: "hostel", lat: 20.354458601632377, lng: 85.81947044232925},
+            // ... ALL YOUR KP HOSTELS
+            
+            // QC Hostels
+            {name: "Queen's Castle 1", type: "hostel", lat: 20.352478588914085, lng: 85.81809212225603},
+            {name: "Queen's Castle 2", type: "hostel", lat: 20.352337129057517, lng: 85.8187784533921},
+            // ... ALL YOUR QC HOSTELS
+            
+            // Libraries
+            {name: "Central Library", type: "library", lat: 20.354055008292377, lng: 85.81637333664973},
+            {name: "KIMS Library", type: "library", lat: 20.353580445182, lng: 85.8155388716826},
+            // ... ALL YOUR LIBRARIES
+            
+            // Sports
+            {name: "KIIT Cricket Field", type: "sports", lat: 20.357353810053166, lng: 85.81794109873883},
+            {name: "KIIT Indoor Stadium", type: "sports", lat: 20.357233105301212, lng: 85.81893351604296},
+            // ... ALL YOUR SPORTS VENUES
+            
+            // Cafeterias
+            {name: "Main Cafeteria", type: "cafeteria", lat: 20.354055, lng: 85.816373},
+            // ... ALL YOUR CAFETERIAS
+            
+            // Admin
+            {name: "Campus 1", type: "admin", lat: 20.346234153476026, lng: 85.82354974079325},
+            // ... ALL ADMIN BLOCKS
+        ];
+        
+        // Personnel Data
+        const personnel = [
+            {
+                title: "Director General",
+                name: "Prof. Sasmita Samanta",
+                office: "Campus 3, Administrative Block",
+                room: "DG Office, 3rd Floor",
+                campus: "Campus 3",
+                phone: "0674-272-7777",
+                lat: 20.3555,
+                lng: 85.8188
+            },
+            // ... ALL YOUR PERSONNEL DATA
+        ];
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+            renderMarkers();
+            initChatbot();
+            initSearch();
+            initLayerSwitcher();
+            initQRModal();
+        });
+        
+        // Render markers on map
+        function renderMarkers() {
+            // Clear existing markers
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+            
+            // Add new markers
+            preload.forEach(location => {
+                const icon = getIconForType(location.type);
+                const marker = L.marker([location.lat, location.lng], { icon }).addTo(map);
+                
+                marker.bindPopup(`
+                    <b>${location.name}</b><br>
+                    <small>${location.type.toUpperCase()}</small><br>
+                    <button onclick="showDirections(${location.lat}, ${location.lng})" 
+                            style="margin-top:5px; padding:5px 10px; background:#60f321; color:white; border:none; border-radius:5px; cursor:pointer;">
+                        Get Directions
+                    </button>
+                `);
+                
+                markers.push(marker);
+            });
+            
+            // Update place count
+            document.getElementById('place-count').textContent = `(${preload.length})`;
+        }
+        
+        function getIconForType(type) {
+            const icons = {
+                academic: L.divIcon({ html: "🏫", className: "", iconSize: [24, 24] }),
+                hostel: L.divIcon({ html: "🏠", className: "", iconSize: [24, 24] }),
+                cafeteria: L.divIcon({ html: "🍴", className: "", iconSize: [24, 24] }),
+                library: L.divIcon({ html: "📚", className: "", iconSize: [24, 24] }),
+                sports: L.divIcon({ html: "⚽", className: "", iconSize: [24, 24] }),
+                admin: L.divIcon({ html: "🏢", className: "", iconSize: [24, 24] })
+            };
+            return icons[type] || icons.academic;
+        }
+        
+        function showDirections(lat, lng) {
+            window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
+        }
+        
+        // Chatbot Functions
+        function initChatbot() {
+            // ... COPY ALL YOUR CHATBOT CODE HERE ...
+        }
+        
+        // Search Functions
+        function initSearch() {
+            // ... COPY ALL YOUR SEARCH CODE HERE ...
+        }
+        
+        // Layer Switcher
+        function initLayerSwitcher() {
+            // ... COPY YOUR LAYER SWITCHER CODE ...
+        }
+        
+        // QR Modal
+        function initQRModal() {
+            // ... COPY YOUR QR MODAL CODE ...
+        }
+        
+        // Logout Function
+        document.getElementById('btn-login').addEventListener('click', function() {
+            fetch('/logout')
+                .then(() => {
+                    window.location.href = '/';
+                });
+        });
+        
+        // My Location Button
+        document.getElementById('find-me').addEventListener('click', function() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    const userLat = position.coords.latitude;
+                    const userLng = position.coords.longitude;
+                    
+                    L.marker([userLat, userLng], {
+                        icon: L.divIcon({ html: "📍", className: "", iconSize: [30, 30] })
+                    }).addTo(map).bindPopup("You are here!").openPopup();
+                    
+                    map.setView([userLat, userLng], 18);
+                    
+                    // Show toast
+                    showToast("📍 Your location found!");
+                });
+            } else {
+                showToast("GPS not supported");
+            }
+        });
+        
+        function showToast(message) {
+            // Simple toast notification
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: #60f321;
+                color: white;
+                padding: 12px 24px;
+                border-radius: 10px;
+                z-index: 10000;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+        
+        // Category filtering
+        document.querySelectorAll('.chip').forEach(chip => {
+            chip.addEventListener('click', function() {
+                document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+                this.classList.add('active');
+                
+                const type = this.dataset.type;
+                filterMarkers(type);
+            });
+        });
+        
+        function filterMarkers(type) {
+            markers.forEach(marker => {
+                if (type === 'all') {
+                    map.addLayer(marker);
+                } else {
+                    const markerType = marker.options.icon.options.html;
+                    const typeIcons = {
+                        'academic': '🏫',
+                        'hostel': '🏠', 
+                        'cafeteria': '🍴',
+                        'library': '📚',
+                        'sports': '⚽',
+                        'admin': '🏢'
+                    };
+                    
+                    if (typeIcons[type] === markerType) {
+                        map.addLayer(marker);
+                    } else {
+                        map.removeLayer(marker);
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,385 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#60f321">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="KIIT Connect">
+    
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    
+    <title>KIIT Connect - Campus Navigation</title>
+    
+    <style>
+        :root {
+            --bg: #f4f7fb;
+            --panel: #ffffff;
+            --border: #dfe3e8;
+            --text: #1c1f23;
+            --muted: #6b7b8c;
+            --brand: #60f321;
+            --brand-hover: #4cbe15;
+            --radius: 14px;
+            --shadow: 0 4px 18px rgba(0,0,0,.1);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #60f321 0%, #4cbe15 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .login-container {
+            background: var(--panel);
+            border-radius: var(--radius);
+            width: 100%;
+            max-width: 420px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+        
+        .login-header {
+            background: linear-gradient(135deg, var(--brand), var(--brand-hover));
+            padding: 30px;
+            text-align: center;
+            color: white;
+        }
+        
+        .logo-badge {
+            width: 80px;
+            height: 80px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            font-weight: bold;
+            margin: 0 auto 20px;
+        }
+        
+        .login-title {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+        
+        .login-subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .login-body {
+            padding: 30px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-label {
+            display: block;
+            color: var(--text);
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .input-field {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+            background: var(--bg);
+        }
+        
+        .input-field:focus {
+            outline: none;
+            border-color: var(--brand);
+            box-shadow: 0 0 0 3px rgba(96, 243, 33, 0.1);
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(to right, var(--brand), var(--brand-hover));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s;
+        }
+        
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(96, 243, 33, 0.3);
+        }
+        
+        .quick-login {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        
+        .quick-btn {
+            padding: 14px;
+            border: 2px solid var(--border);
+            background: var(--bg);
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .quick-btn:hover {
+            background: var(--brand);
+            color: white;
+            border-color: var(--brand);
+        }
+        
+        .error-message {
+            background: #fee2e2;
+            border: 1px solid #fca5a5;
+            color: #dc2626;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 14px;
+        }
+        
+        .pwa-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+        
+        .install-btn {
+            background: var(--bg);
+            color: var(--brand);
+            border: 2px solid var(--brand);
+            border-radius: 10px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .install-btn:hover {
+            background: var(--brand);
+            color: white;
+        }
+        
+        .footer {
+            text-align: center;
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: 20px;
+            padding: 20px;
+        }
+        
+        @media (max-width: 480px) {
+            .login-container {
+                max-width: 100%;
+            }
+            .login-header {
+                padding: 20px;
+            }
+            .login-body {
+                padding: 20px;
+            }
+            .quick-login {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <div class="logo-badge">K</div>
+            <h1 class="login-title">KIIT Connect</h1>
+            <div class="login-subtitle">Explore Campus • Cafeterias • Hostels</div>
+        </div>
+        
+        <div class="login-body">
+            <div id="errorMessage" class="error-message"></div>
+            
+            <div class="input-group">
+                <label class="input-label">Email Address</label>
+                <input type="email" id="email" class="input-field" placeholder="student@kiit.ac.in" value="student@kiit.ac.in">
+            </div>
+            
+            <div class="input-group">
+                <label class="input-label">Password</label>
+                <input type="password" id="password" class="input-field" placeholder="Enter password" value="password123">
+            </div>
+            
+            <button id="loginButton" class="login-btn">
+                <span>🔐</span>
+                <span>Login to KIIT Connect</span>
+            </button>
+            
+            <div class="quick-login">
+                <button class="quick-btn" onclick="quickLogin('student@kiit.ac.in')">
+                    <span>👨‍🎓</span>
+                    <span>Student Login</span>
+                </button>
+                <button class="quick-btn" onclick="quickLogin('rajdeepdutta104@gmail.com')">
+                    <span>👨‍💼</span>
+                    <span>Admin Login</span>
+                </button>
+            </div>
+            
+            <div class="pwa-section">
+                <p style="color: var(--muted); font-size: 13px; margin-bottom: 10px;">
+                    📱 Install as mobile app for better experience
+                </p>
+                <button id="installButton" class="install-btn">
+                    <span>📲</span>
+                    <span>Install KIIT Connect</span>
+                </button>
+            </div>
+        </div>
+        
+        <div class="footer">
+            KIIT Deemed to be University • Version 2.0.1
+        </div>
+    </div>
+
+    <script>
+        // Login functionality
+        const loginButton = document.getElementById('loginButton');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const errorMessage = document.getElementById('errorMessage');
+        
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            setTimeout(() => {
+                errorMessage.style.display = 'none';
+            }, 5000);
+        }
+        
+        async function loginUser(email, password) {
+            try {
+                loginButton.innerHTML = '<span>⏳</span><span>Logging in...</span>';
+                loginButton.disabled = true;
+                
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    window.location.href = '/';
+                } else {
+                    showError(data.message || 'Login failed');
+                    loginButton.innerHTML = '<span>🔐</span><span>Login to KIIT Connect</span>';
+                    loginButton.disabled = false;
+                }
+            } catch (error) {
+                showError('Network error. Please try again.');
+                loginButton.innerHTML = '<span>🔐</span><span>Login to KIIT Connect</span>';
+                loginButton.disabled = false;
+            }
+        }
+        
+        // Quick login for demo
+        function quickLogin(email) {
+            emailInput.value = email;
+            passwordInput.value = email.includes('admin') ? 'admin123' : 'password123';
+            loginUser(email, passwordInput.value);
+        }
+        
+        // Handle form submission
+        loginButton.addEventListener('click', () => {
+            const email = emailInput.value.trim();
+            const password = passwordInput.value.trim();
+            
+            if (!email || !password) {
+                showError('Please enter both email and password');
+                return;
+            }
+            
+            loginUser(email, password);
+        });
+        
+        // Allow Enter key to submit
+        passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                loginButton.click();
+            }
+        });
+        
+        // PWA Installation
+        let deferredPrompt;
+        const installButton = document.getElementById('installButton');
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installButton.style.display = 'inline-flex';
+        });
+        
+        installButton.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    installButton.style.display = 'none';
+                }
+                deferredPrompt = null;
+            } else {
+                alert('To install: On mobile, use "Add to Home Screen" in browser menu');
+            }
+        });
+        
+        // Check if already logged in
+        window.addEventListener('load', () => {
+            fetch('/health')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.authenticated) {
+                        window.location.href = '/';
+                    }
+                });
+        });
+    </script>
+</body>
+</html>
