@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KIIT Connect - Login</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- PWA Configuration -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1a237e">
+    <link rel="stylesheet" href="/static/css/mobile.css">
     <style>
         * {
             margin: 0;
@@ -116,6 +120,12 @@
             box-shadow: 0 5px 15px rgba(0, 188, 212, 0.4);
         }
         
+        .login-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
         .login-type {
             display: flex;
             justify-content: center;
@@ -190,6 +200,39 @@
             color: rgba(255, 255, 255, 0.6);
         }
         
+        /* Loading spinner */
+        .fa-spinner {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: #333;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.3s;
+            max-width: 90%;
+            text-align: center;
+        }
+        
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        
         @media (max-width: 480px) {
             .container {
                 padding: 25px;
@@ -250,8 +293,23 @@
     <div class="footer">
         KIIT University © 2024
     </div>
+    
+    <!-- Toast notification -->
+    <div class="toast" id="toast"></div>
 
+    <script src="/static/js/pwa.js" defer></script>
     <script>
+        // Toast notification function
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast show ${type}`;
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
         // Set default email placeholder
         document.getElementById('email').placeholder = "student@kiit.ac.in";
         
@@ -272,34 +330,131 @@
             emailInput.placeholder = "admin@kiit.ac.in";
         });
         
-        // Login functionality
-        document.getElementById('loginBtn').addEventListener('click', function() {
-            const email = document.getElementById('email').value;
+        // Login functionality with Flask API
+        document.getElementById('loginBtn').addEventListener('click', async function() {
+            const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             
             if (!email || !password) {
-                alert('Please enter both email and password');
+                showToast('Please enter both email and password', 'error');
                 return;
             }
             
-            // For demo purposes, accept any non-empty login
-            localStorage.setItem('isLoggedIn', 'true');
-            localStorage.setItem('userEmail', email);
-            localStorage.setItem('userType', studentBtn.classList.contains('active') ? 'student' : 'admin');
+            // Show loading
+            const btn = this;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+            btn.disabled = true;
             
-            // Redirect to KIITnav page
-            window.location.href = 'dashboard.html';
+            try {
+                // Send login request to Flask API
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Save token to localStorage
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    
+                    showToast('Login successful! Redirecting...', 'success');
+                    
+                    // Redirect to dashboard after delay
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1000);
+                } else {
+                    showToast('Login failed: ' + data.message, 'error');
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showToast('Network error. Please try again.', 'error');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
         });
         
-        // Register link
-        document.getElementById('registerLink').addEventListener('click', function(e) {
+        // Register functionality
+        document.getElementById('registerLink').addEventListener('click', async function(e) {
             e.preventDefault();
-            alert('Registration page would open here. For demo, use any email and password to login.');
+            
+            const name = prompt('Enter your full name:');
+            if (!name) return;
+            
+            const email = prompt('Enter your email:');
+            if (!email) {
+                showToast('Email is required', 'error');
+                return;
+            }
+            
+            const password = prompt('Enter your password (min 6 characters):');
+            if (!password || password.length < 6) {
+                showToast('Password must be at least 6 characters', 'error');
+                return;
+            }
+            
+            const confirmPassword = prompt('Confirm your password:');
+            if (password !== confirmPassword) {
+                showToast('Passwords do not match', 'error');
+                return;
+            }
+            
+            const studentId = prompt('Enter your student ID (optional):') || '';
+            
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        email: email,
+                        password: password,
+                        student_id: studentId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Registration successful! Please login.', 'success');
+                    document.getElementById('email').value = email;
+                    document.getElementById('password').value = '';
+                    document.getElementById('password').focus();
+                } else {
+                    showToast('Registration failed: ' + data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                showToast('Network error. Please try again.', 'error');
+            }
         });
         
-        // Install button (PWA simulation)
+        // PWA Install button
         document.getElementById('installBtn').addEventListener('click', function() {
-            alert('KIIT Connect would be installed as a mobile app. In a real PWA, this would trigger the install prompt.');
+            if (window.PWA && window.PWA.install) {
+                window.PWA.install();
+            } else {
+                showToast('Installation will prompt when available', 'info');
+                // For demo - simulate PWA install
+                if (navigator.userAgent.includes('Chrome')) {
+                    showToast('In Chrome: Click ⋮ → Install KIIT Connect', 'info');
+                } else if (navigator.userAgent.includes('Safari')) {
+                    showToast('In Safari: Click Share → Add to Home Screen', 'info');
+                }
+            }
         });
         
         // Auto-focus on email field
@@ -314,10 +469,25 @@
         
         // Check if already logged in
         window.onload = function() {
-            const isLoggedIn = localStorage.getItem('isLoggedIn');
-            if (isLoggedIn === 'true') {
-                // Optional: auto-redirect to dashboard
-                // window.location.href = 'dashboard.html';
+            const token = localStorage.getItem('token');
+            if (token) {
+                // Verify token is still valid
+                fetch('/api/health')
+                    .then(response => {
+                        if (response.ok) {
+                            // Optional: auto-redirect if health check passes
+                            // window.location.href = '/dashboard';
+                        }
+                    })
+                    .catch(() => {
+                        // Token invalid or server down
+                        localStorage.removeItem('token');
+                    });
+            }
+            
+            // Request notification permission
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
             }
         };
     </script>
