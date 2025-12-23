@@ -3,309 +3,841 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KIITnav - Campus Navigator</title>
-    
-    <!-- Leaflet CSS & JS -->
+    <title>KIITnav - Dashboard</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-    
-    <!-- QR Code Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* COPY ALL YOUR ORIGINAL CSS HERE */
-        /* This includes all the styles for:
-           - Map container
-           - Chatbot
-           - Hostel listings (KP, QC)
-           - Cafeterias, Libraries, Sports
-           - Layer switcher
-           - Search functionality
-           - HVI modal
-           - Everything else from your original
-        */
-        
-        :root {
-            --bg: #f4f7fb;
-            --panel: #ffffff;
-            --border: #dfe3e8;
-            --text: #1c1f23;
-            --muted: #6b7b8c;
-            --brand: #60f321;
-            --brand-hover: #4cbe15;
-            --radius: 14px;
-            --shadow: 0 4px 18px rgba(0,0,0,.1);
-        }
-        
         * {
-            box-sizing: border-box;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
         }
         
         body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            height: 100vh;
-            overflow: hidden;
+            background-color: #f5f5f5;
+            color: #333;
+            min-height: 100vh;
         }
         
-        .app {
-            display: grid;
-            grid-template-rows: auto 1fr;
-            height: 100vh;
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
+            color: white;
+            padding: 20px 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 1000;
         }
         
-        .nav {
-            background: var(--panel);
-            box-shadow: var(--shadow);
+        .header-top {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 12px;
-            padding: 10px 18px;
-            border-bottom: 1px solid var(--border);
+            margin-bottom: 15px;
         }
         
         .logo {
+            font-size: 24px;
+            font-weight: 900;
+            color: #00BCD4;
+        }
+        
+        .user-info {
             display: flex;
             align-items: center;
             gap: 10px;
-            font-weight: 700;
+            font-size: 14px;
         }
         
-        .logo-badge {
-            width: 32px;
-            height: 32px;
-            display: grid;
-            place-items: center;
+        .user-icon {
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
-            background: var(--brand);
-            color: #fff;
-            font-weight: 800;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
-        /* ... CONTINUE WITH ALL YOUR ORIGINAL CSS ... */
+        .tagline {
+            font-size: 14px;
+            opacity: 0.9;
+            text-align: center;
+            margin-bottom: 15px;
+        }
         
+        /* Search Bar */
+        .search-container {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+            position: relative;
+        }
+        
+        .search-icon {
+            margin-right: 10px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .search-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 14px;
+        }
+        
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .search-input:focus {
+            outline: none;
+        }
+        
+        /* Search Suggestions */
+        .suggestions-container {
+            position: absolute;
+            top: 100%;
+            left: 15px;
+            right: 15px;
+            background: white;
+            border-radius: 10px;
+            margin-top: 5px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+            z-index: 2000;
+            display: none;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .suggestion-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .suggestion-item:hover, .suggestion-item.active {
+            background: #f0f7ff;
+        }
+        
+        .suggestion-item strong {
+            color: #1a237e;
+            font-size: 14px;
+        }
+        
+        .suggestion-item .meta {
+            font-size: 12px;
+            color: #666;
+            margin-top: 3px;
+        }
+        
+        /* Main Content */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            gap: 15px;
+        }
+        
+        /* Quick Actions */
+        .quick-actions {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+        }
+        
+        .action-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            flex: 1;
+        }
+        
+        .action-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            color: white;
+        }
+        
+        .location-icon {
+            background: linear-gradient(135deg, #4CAF50, #8BC34A);
+        }
+        
+        .qr-icon {
+            background: linear-gradient(135deg, #2196F3, #03A9F4);
+        }
+        
+        .action-text {
+            font-size: 12px;
+            font-weight: 500;
+            color: #555;
+        }
+        
+        /* Map Container */
+        .map-container {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+            height: 300px;
+            position: relative;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+        }
+        
+        .map-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 5px;
+            z-index: 1000;
+        }
+        
+        .map-control-btn {
+            background: white;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: #333;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+        }
+        
+        .map-control-btn:hover {
+            background: #f5f5f5;
+            transform: translateY(-1px);
+        }
+        
+        /* Explore Section */
+        .explore-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a237e;
+        }
+        
+        .section-count {
+            background: #1a237e;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+        
+        /* Categories */
+        .categories {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .category {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 15px 5px;
+            border-radius: 10px;
+            background: #f8f9fa;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .category:hover {
+            background: #e8f4fd;
+            transform: translateY(-3px);
+        }
+        
+        .category.active {
+            background: #e8f4fd;
+            box-shadow: 0 3px 10px rgba(26, 35, 126, 0.1);
+        }
+        
+        .category-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: white;
+        }
+        
+        .academic { background: #FF5722; }
+        .hostel { background: #9C27B0; }
+        .cafeteria { background: #FF9800; }
+        .library { background: #009688; }
+        .sports { background: #4CAF50; }
+        .admin { background: #3F51B5; }
+        .all { background: #1a237e; }
+        
+        .category-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: #333;
+            text-align: center;
+        }
+        
+        /* Map View Options */
+        .map-view-options {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .map-option {
+            padding: 8px 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #555;
+            transition: all 0.3s;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        
+        .map-option.active {
+            background: #1a237e;
+            color: white;
+            border-color: #1a237e;
+        }
+        
+        /* HVI Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            width: 100%;
+            max-width: 500px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            animation: modalSlide 0.3s ease;
+        }
+        
+        @keyframes modalSlide {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
+            color: white;
+            padding: 20px;
+            position: relative;
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.3s;
+        }
+        
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .modal-subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .modal-info {
+            margin-bottom: 15px;
+        }
+        
+        .modal-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 3px;
+        }
+        
+        .modal-value {
+            font-size: 15px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+        
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .modal-btn.primary {
+            background: #2196F3;
+            color: white;
+        }
+        
+        .modal-btn.secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+        
+        .modal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #333;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            z-index: 4000;
+            opacity: 0;
+            transition: all 0.3s;
+            max-width: 90%;
+            text-align: center;
+        }
+        
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 12px;
+            color: #777;
+            background: white;
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        /* Logout Button */
+        .logout-btn {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #FF5722;
+            color: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 4px 12px rgba(255, 87, 34, 0.3);
+            cursor: pointer;
+            z-index: 1000;
+        }
+        
+        /* Map Legend */
+        .map-legend {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            font-size: 11px;
+            z-index: 1000;
+            max-width: 150px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 5px;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        @media (max-width: 480px) {
+            .categories {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 12px;
+            }
+            
+            .category {
+                padding: 12px 5px;
+            }
+            
+            .modal-content {
+                width: 95%;
+            }
+            
+            .map-legend {
+                max-width: 130px;
+                font-size: 10px;
+            }
+        }
+        
+        @media (max-width: 350px) {
+            .categories {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="app">
-        <!-- NAVIGATION HEADER -->
-        <header class="nav">
-            <div class="logo">
-                <div class="logo-badge">K</div>
-                <div>
-                    <div style="font-weight:800;letter-spacing:.3px">KIITnav</div>
-                    <div style="font-size:12px;color:var(--muted)">Explore Campus • Cafeterias • Hostels</div>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-top">
+            <div class="logo">KIITnav</div>
+            <div class="user-info">
+                <div class="user-icon">
+                    <i class="fas fa-user"></i>
+                </div>
+                <span id="userEmail">student@kiit.ac.in</span>
+            </div>
+        </div>
+        
+        <div class="tagline">
+            Explore Campus • Cafeterias • Hostels
+        </div>
+        
+        <div class="search-container">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" class="search-input" id="global-search" placeholder="Search locations or officials">
+            <div class="suggestions-container" id="nav-suggestion-list"></div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <div class="action-item" id="myLocationBtn">
+                <div class="action-icon location-icon">
+                    <i class="fas fa-map-marker-alt"></i>
+                </div>
+                <span class="action-text">My Location</span>
+            </div>
+            
+            <div class="action-item" id="qrScannerBtn">
+                <div class="action-icon qr-icon">
+                    <i class="fas fa-qrcode"></i>
+                </div>
+                <span class="action-text">QR Scanner</span>
+            </div>
+        </div>
+        
+        <!-- Map Container -->
+        <div class="map-container">
+            <div id="map"></div>
+            <div class="map-controls">
+                <button class="map-control-btn" id="zoomInBtn">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button class="map-control-btn" id="zoomOutBtn">
+                    <i class="fas fa-minus"></i>
+                </button>
+                <button class="map-control-btn" id="locateBtn">
+                    <i class="fas fa-crosshairs"></i>
+                </button>
+            </div>
+            <div class="map-legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #FF5722;"></div>
+                    <span>Academic</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #9C27B0;"></div>
+                    <span>Hostel</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #FF9800;"></div>
+                    <span>Cafeteria</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #009688;"></div>
+                    <span>Library</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #4CAF50;"></div>
+                    <span>Sports</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #3F51B5;"></div>
+                    <span>Admin</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Explore Section -->
+        <div class="explore-section">
+            <div class="section-header">
+                <div class="section-title">Explore</div>
+                <div class="section-count" id="placesCount">14</div>
+            </div>
+            
+            <div class="categories">
+                <div class="category active" onclick="selectCategory('all')">
+                    <div class="category-icon all">
+                        <i class="fas fa-globe"></i>
+                    </div>
+                    <span class="category-name">All</span>
+                </div>
+                
+                <div class="category" onclick="selectCategory('academic')">
+                    <div class="category-icon academic">
+                        <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    <span class="category-name">Academic</span>
+                </div>
+                
+                <div class="category" onclick="selectCategory('hostel')">
+                    <div class="category-icon hostel">
+                        <i class="fas fa-bed"></i>
+                    </div>
+                    <span class="category-name">Hostel</span>
+                </div>
+                
+                <div class="category" onclick="selectCategory('cafeteria')">
+                    <div class="category-icon cafeteria">
+                        <i class="fas fa-utensils"></i>
+                    </div>
+                    <span class="category-name">Cafeteria</span>
+                </div>
+                
+                <div class="category" onclick="selectCategory('library')">
+                    <div class="category-icon library">
+                        <i class="fas fa-book"></i>
+                    </div>
+                    <span class="category-name">Library</span>
+                </div>
+                
+                <div class="category" onclick="selectCategory('sports')">
+                    <div class="category-icon sports">
+                        <i class="fas fa-running"></i>
+                    </div>
+                    <span class="category-name">Sports</span>
+                </div>
+                
+                <div class="category" onclick="selectCategory('admin')">
+                    <div class="category-icon admin">
+                        <i class="fas fa-users-cog"></i>
+                    </div>
+                    <span class="category-name">Admin</span>
                 </div>
             </div>
             
-            <!-- Search Bar -->
-            <div class="nav-middle">
-                <div class="nav-search-wrap">
-                    <input id="global-search" placeholder="Search locations or officials..." autocomplete="off" />
-                    <div id="nav-suggestion-list"></div>
-                </div>
-            </div>
-            
-            <div class="nav-actions">
-                <button id="btn-login" class="btn secondary">Sign in</button>
-                <button id="find-me" class="btn primary">📍 My Location</button>
-                <button id="btn-qr" class="btn secondary">📱 QR</button>
-            </div>
-        </header>
-        
-        <!-- MAIN CONTENT -->
-        <main class="layout">
-            <!-- LEFT SIDEBAR - Locations List -->
-            <section class="panel place-list">
-                <div class="panel-header">
-                    Explore <span id="place-count">(0)</span>
-                </div>
-                <div class="panel-body">
-                    <div class="chips">
-                        <div class="chip active" data-type="all">All</div>
-                        <div class="chip" data-type="academic">Academic</div>
-                        <div class="chip" data-type="hostel">Hostel</div>
-                        <div class="chip" data-type="cafeteria">Cafeteria</div>
-                        <div class="chip" data-type="library">Library</div>
-                        <div class="chip" data-type="sports">Sports</div>
-                        <div class="chip" data-type="admin">Admin</div>
-                    </div>
-                    
-                    <div class="places-container" id="places-container">
-                        <!-- Dynamic content will be loaded here -->
-                        <!-- KP Hostels, QC Hostels, Libraries, Cafeterias, Sports, etc -->
-                    </div>
-                </div>
-            </section>
-            
-            <!-- RIGHT SIDE - Map -->
-            <section class="panel map">
-                <div class="panel-header">Map View</div>
-                <div class="panel-body">
-                    <div id="map"></div>
-                    
-                    <!-- Map Layer Switcher -->
-                    <div class="map-layer-switcher">
-                        <div class="layer-switcher-header">🗺️ Map View</div>
-                        <div class="layer-option active" data-layer="streets">
-                            <span class="layer-icon">🏙️</span>
-                            <span class="layer-label">Streets</span>
-                        </div>
-                        <div class="layer-option" data-layer="satellite">
-                            <span class="layer-icon">🛰️</span>
-                            <span class="layer-label">Satellite</span>
-                        </div>
-                        <div class="layer-option" data-layer="terrain">
-                            <span class="layer-icon">⛰️</span>
-                            <span class="layer-label">Terrain</span>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </main>
-    </div>
-    
-    <!-- CHATBOT -->
-    <div id="chatbot-container">
-        <div id="chatbot-header">
-            <div class="chatbot-logo">
-                <div class="chatbot-logo-badge">K</div>
-                <div class="chatbot-title">KIITnav Assistant</div>
-            </div>
-            <div class="chatbot-header-actions">
-                <button id="chatbot-refresh" class="chatbot-header-btn">🔄</button>
-                <button id="chatbot-help-btn" class="chatbot-header-btn">❓</button>
-                <button id="chatbot-toggle" class="chatbot-header-btn">−</button>
-            </div>
-        </div>
-        
-        <div id="chatbot-messages">
-            <div class="message bot-message">
-                <p>Hello! I'm your KIIT Connect assistant. I can show locations on the map and help you find university officials!</p>
-            </div>
-        </div>
-        
-        <div class="quick-suggestions">
-            <div class="quick-suggestion" data-question="Show Central Library">📍 Central Library</div>
-            <div class="quick-suggestion" data-question="Where is Director General">👔 Director General</div>
-            <div class="quick-suggestion" data-question="Show all hostels">🏠 All Hostels</div>
-            <div class="quick-suggestion" data-question="Find cricket field">⚽ Cricket Field</div>
-        </div>
-        
-        <div id="chatbot-input">
-            <input type="text" id="user-input" placeholder="Ask about locations or personnel...">
-            <button id="send-btn">➤</button>
-        </div>
-    </div>
-    
-    <!-- QR MODAL -->
-    <div id="qr-modal" class="qr-modal">
-        <div class="qr-modal-content">
-            <div class="qr-modal-title">Scan to open this page</div>
-            <div class="qr-box" id="qr-box"></div>
-            <div style="font-size:13px;color:var(--muted);">Scan with any mobile camera or QR scanner</div>
-            <div class="qr-controls">
-                <button id="download-qr" class="btn primary">Download QR</button>
-                <button id="close-qr" class="btn secondary">Close</button>
+            <div class="map-view-options">
+                <div class="map-option active" onclick="changeMapView('map')">Map View</div>
+                <div class="map-option" onclick="changeMapView('streets')">Streets</div>
+                <div class="map-option" onclick="changeMapView('satellite')">Satellite</div>
+                <div class="map-option" onclick="changeMapView('terrain')">Terrain</div>
             </div>
         </div>
     </div>
     
-    <!-- HVI MODAL (For officials) -->
-    <div id="hvi-modal" class="hvi-modal">
-        <div class="hvi-modal-content">
-            <!-- HVI modal content from your original -->
+    <!-- HVI Modal -->
+    <div class="modal" id="hvi-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="modal-close" onclick="closeHVIModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div class="modal-title" id="hvi-name">Prof. Sasmita Samanta</div>
+                <div class="modal-subtitle" id="hvi-title">Director General</div>
+            </div>
+            <div class="modal-body">
+                <div class="modal-info">
+                    <div class="modal-label">Office</div>
+                    <div class="modal-value" id="hvi-office">Campus 3, Administrative Block</div>
+                </div>
+                <div class="modal-info">
+                    <div class="modal-label">Room</div>
+                    <div class="modal-value" id="hvi-room">DG Office, 3rd Floor</div>
+                </div>
+                <div class="modal-info">
+                    <div class="modal-label">Campus</div>
+                    <div class="modal-value" id="hvi-campus">Campus 3</div>
+                </div>
+                <div class="modal-info">
+                    <div class="modal-label">Phone</div>
+                    <div class="modal-value" id="hvi-phone">0674-272-7777</div>
+                </div>
+                <div class="modal-actions">
+                    <button class="modal-btn secondary" onclick="closeHVIModal()">Close</button>
+                    <button class="modal-btn primary" onclick="showHVIOnMap()">Show on Map</button>
+                    <button class="modal-btn primary" onclick="getHVIDirections()">Get Directions</button>
+                </div>
+            </div>
         </div>
     </div>
     
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+    
+    <!-- Logout Button -->
+    <button class="logout-btn" id="logoutBtn">
+        <i class="fas fa-sign-out-alt"></i>
+    </button>
+    
+    <!-- Footer -->
+    <div class="footer">
+        KIIT University © 2024 | Campus Navigation System
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // CONFIGURATION
-        const CONFIG = {
-            firebase: {
-                apiKey: "AIzaSyAvdVw_yOQtxvSd9MTU_hRz1AD6RDCaQ0A",
-                authDomain: "navigator-4a29d.firebaseapp.com",
-                projectId: "navigator-4a29d",
-                storageBucket: "navigator-4a29d.firebasestorage.app",
-                messagingSenderId: "670551267892",
-                appId: "1:670551267892:web:3c7f7a66c53f262adcc861",
-            },
-            adminEmail: "{{ admin_email|default('rajdeepdutta104@gmail.com') }}",
-            mapKey: "{{ maptiler_key|default('1DAJJ44xYcqv8JcwhP0L') }}"
-        };
-        
-        // Initialize Firebase
-        const app = firebase.initializeApp(CONFIG.firebase);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        
-        // Initialize Map
-        let map;
-        let markers = [];
-        
-        function initMap() {
-            map = L.map('map', {
-                center: [20.3549, 85.8185],
-                zoom: 16,
-                minZoom: 10,
-                maxZoom: 22
-            });
-            
-            // Add tile layer
-            L.tileLayer(`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${CONFIG.mapKey}`, {
-                tileSize: 512,
-                zoomOffset: -1,
-                maxZoom: 22,
-                attribution: '© MapTiler © OpenStreetMap'
-            }).addTo(map);
-        }
-        
-        // PRELOAD DATA - COPY ALL YOUR ORIGINAL DATA HERE
+        /* -----------------------------
+           Preloaded places & personnel
+           ----------------------------- */
         const preload = [
-            // Academic Blocks
-            {name: "Campus 3 Academic Block", type: "academic", lat: 20.352761729599813, lng: 85.81724230083005},
-            {name: "Campus 7 Academic Block", type: "academic", lat: 20.350520271622248, lng: 85.82070018739302},
-            {name: "Campus 8 Academic Block", type: "academic", lat: 20.35099617352404, lng: 85.82057163453852},
-            // ... ALL YOUR ACADEMIC BLOCKS
-            
-            // KP Hostels
-            {name: "King's Palace 1", type: "hostel", lat: 20.35440136062493, lng: 85.82021742698775},
-            {name: "King's Palace 2", type: "hostel", lat: 20.354766719102646, lng: 85.81905247116465},
-            {name: "King's Palace 3", type: "hostel", lat: 20.354458601632377, lng: 85.81947044232925},
-            // ... ALL YOUR KP HOSTELS
-            
-            // QC Hostels
-            {name: "Queen's Castle 1", type: "hostel", lat: 20.352478588914085, lng: 85.81809212225603},
-            {name: "Queen's Castle 2", type: "hostel", lat: 20.352337129057517, lng: 85.8187784533921},
-            // ... ALL YOUR QC HOSTELS
-            
-            // Libraries
-            {name: "Central Library", type: "library", lat: 20.354055008292377, lng: 85.81637333664973},
-            {name: "KIMS Library", type: "library", lat: 20.353580445182, lng: 85.8155388716826},
-            // ... ALL YOUR LIBRARIES
-            
-            // Sports
-            {name: "KIIT Cricket Field", type: "sports", lat: 20.357353810053166, lng: 85.81794109873883},
-            {name: "KIIT Indoor Stadium", type: "sports", lat: 20.357233105301212, lng: 85.81893351604296},
-            // ... ALL YOUR SPORTS VENUES
-            
-            // Cafeterias
-            {name: "Main Cafeteria", type: "cafeteria", lat: 20.354055, lng: 85.816373},
-            // ... ALL YOUR CAFETERIAS
-            
-            // Admin
-            {name: "Campus 1", type: "admin", lat: 20.346234153476026, lng: 85.82354974079325},
-            // ... ALL ADMIN BLOCKS
-        ];
+            {name:"Campus 3 Academic Block",type:"academic",lat:20.352761729599813,lng:85.81724230083005},
+            {name:"Campus 7 Academic Block",type:"academic",lat:20.350520271622248,lng:85.82070018739302},
+            {name:"Campus 8 Academic Block",type:"academic",lat:20.35099617352404,lng:85.82057163453852},
+            {name:"Campus 12 Academic Block",type:"academic",lat:20.355359600371553,lng:85.82056452901325},
+            {name:"Campus 14 Academic Block",type:"academic",lat:20.35540833201611,lng:85.81515308787915},
+            {name:"Campus 15 Academic Block",type:"academic",lat:20.3483529749744,lng:85.81614386130093},
+            {name:"Campus 16 Academic Block",type:"academic",lat:20.362074804798052,lng:85.8229493340014},
+            {name:"Campus 17 Academic Block",type:"academic",lat:20.349114232934372,lng:85.81956979349994},
+            {name:"Campus 25 Academic Block",type:"academic",lat:20.36455929074428,lng:85.81730592511482},
+
+            // Hostel Details
+            {name:"King's Palace 1",type:"hostel", lat:20.35440136062493,lng:85.82021742698775},
+            {name:"King's Palace 2",type:"hostel", lat:20.354766719102646, lng:85.81905247116465},
+            {name:"King's Palace 3",type:"hostel", lat:20.354458601632377, lng:85.81947044232925},
+            {name:"King's Palace 5",type:"hostel", lat:20.356873000543768, lng:85.82012030142747},
+            {name:"King's Palace 5A",type:"hostel", lat:20.356437661562104, lng:85.81996552173172},
+            {name:"King's Palace 6-AB",type:"hostel", lat:20.348880242653706, lng:85.8161307198512},
+            {name:"King's Palace 6-C",type:"hostel", lat:20.348739412708504, lng:85.81682809422018},
+            {name:"King's Palace 7-AB",type:"hostel", lat:20.351971848844183, lng:85.81605489341933},
+            {name:"King's Palace 8-A",type:"hostel", lat:20.360370203376362, lng:85.82370951586763},
+            {name:"King's Palace 8-c",type:"hostel", lat:20.36081906457951, lng:85.82299336608033},
+            {name:"King's Palace 9-D",type:"hostel", lat:20.34960382820302, lng:85.8155381074431},
+            {name:"King's Palace 10-A",type:"hostel", lat:20.354503690053704, lng:85.81664690571996},
+            {name:"King's Palace 10-B",type:"hostel", lat:20.354679255226507, lng:85.81633128211355},
+            {name:"King's Palace 12",type:"hostel", lat:20.35200319910663, lng:85.82138055016974},
+            {name:"King's Palace 25-A,B,C,D",type:"hostel", lat:20.364095139563137, lng:85.81613756366418},  
+
+            {name:"Queen's Castle 1",type:"hostel", lat:20.352478588914085,lng:85.81809212225603},
+            {name:"Queen's Castle 2",type:"hostel", lat:20.352337129057517, lng:85.8187784533921},
+            {name:"Queen's Castle 3",type:"hostel", lat:20.352381655841935, lng:85.81700301726396},
+            {name:"Queen's Castle 4",type:"hostel", lat:20.3525538643575, lng:85.81827559094287},
+
+            //Library Details
+            {name:"Central Library", type:"library", lat:20.354055008292377, lng:85.81637333664973},
+            {name:"KIMS Library", type:"library", lat:20.353580445182, lng:85.8155388716826},
+            {name:"Campus 15 Library", type:"library",lat:20.348526388447393, lng:85.81612493499773},
+            {name:"Campus 25 Library", type:"library",lat:20.363722616110923, lng:85.81718221225094},
+            {name:"KIIT School of Management Library", type:"library",lat:20.349987111740095, lng:85.82074640735456},
+
+            //Sports Details
+            {name:"KIIT Cricket Field", type:"sports", lat:20.357353810053166, lng:85.81794109873883},  
+            {name:"KIIT Indoor Stadium", type:"sports", lat:20.357233105301212, lng:85.81893351604296},
+            {name:"KIIT Outdoor Football Stadium", type:"sports", lat:20.358537630508575, lng:85.81774003304848},
+            {name:"KIIT Hockey Stadium", type:"sports", lat:20.35876394992908, lng:85.81684953968367},
+            {name:"KIIT Palace 5 ground", type:"sports", lat:20.35691676769393, lng:85.81959422026844},
         
-        // Personnel Data
+            // Admin block
+            {name:"Campus 1", type:"admin", lat:20.346234153476026, lng:85.82354974079325},
+            {name:"Campus 4", type:"admin", lat:20.35380253557167, lng:85.81989100774194},
+        ];
+
         const personnel = [
             {
                 title: "Director General",
@@ -315,170 +847,726 @@
                 campus: "Campus 3",
                 phone: "0674-272-7777",
                 lat: 20.3555,
-                lng: 85.8188
+                lng: 85.8188,
+                icon: "crown"
             },
-            // ... ALL YOUR PERSONNEL DATA
+            {
+                title: "Dean - School of Computer Engineering",
+                name: "Prof. Amiya Kumar Rath",
+                office: "Campus 3",
+                room: "Room 301, CS Building",
+                campus: "Campus 3",
+                phone: "0674-272-8888",
+                lat: 20.3555,
+                lng: 85.8188,
+                icon: "laptop-code"
+            },
+            {
+                title: "Dean - Student Welfare",
+                name: "Prof. Jnyana Ranjan Mohanty",
+                office: "Campus 1, Student Activity Center",
+                room: "DSW Office, 2nd Floor",
+                campus: "Campus 1",
+                phone: "0674-272-9999",
+                lat: 20.354055,
+                lng: 85.816373,
+                icon: "hands-helping"
+            },
+            {
+                title: "Registrar",
+                name: "Dr. Mrutyunjay Suar",
+                office: "Campus 3, Administrative Block",
+                room: "Registrar Office, 2nd Floor",
+                campus: "Campus 3",
+                phone: "0674-272-6666",
+                lat: 20.3555,
+                lng: 85.8188,
+                icon: "file-signature"
+            },
+            {
+                title: "Dean - School of Management",
+                name: "Prof. Biswajit Satpathy",
+                office: "KIIT School of Management",
+                room: "Dean Office, KSOM Building",
+                campus: "Campus 7",
+                phone: "0674-272-5555",
+                lat: 20.349987,
+                lng: 85.820746,
+                icon: "chart-line"
+            }
         ];
+
+        // Global variables
+        let map;
+        let markers = [];
+        let currentHVI = null;
+        let highlightedMarker = null;
+        let currentCategory = 'all';
+        let currentMapLayer = 'map';
         
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            initMap();
-            renderMarkers();
-            initChatbot();
-            initSearch();
-            initLayerSwitcher();
-            initQRModal();
-        });
-        
-        // Render markers on map
-        function renderMarkers() {
+        // Color mapping for location types
+        const typeColors = {
+            academic: '#FF5722',
+            hostel: '#9C27B0',
+            cafeteria: '#FF9800',
+            library: '#009688',
+            sports: '#4CAF50',
+            admin: '#3F51B5'
+        };
+
+        // Icon mapping for personnel
+        const personnelIcons = {
+            'crown': '👑',
+            'laptop-code': '💻',
+            'hands-helping': '🤝',
+            'file-signature': '📝',
+            'chart-line': '📈'
+        };
+
+        /* -----------------------------
+           Initialize Map
+           ----------------------------- */
+        function initMap() {
+            // Center on KIIT Campus
+            const kiitCenter = [20.3555, 85.8188];
+            
+            // Initialize map
+            map = L.map('map').setView(kiitCenter, 16);
+            
+            // Add base layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            // Add all markers
+            addMarkers();
+            
+            // Add personnel markers
+            addPersonnelMarkers();
+            
+            // Setup map controls
+            setupMapControls();
+        }
+
+        /* -----------------------------
+           Marker Functions
+           ----------------------------- */
+        function addMarkers() {
             // Clear existing markers
             markers.forEach(marker => map.removeLayer(marker));
             markers = [];
             
-            // Add new markers
-            preload.forEach(location => {
-                const icon = getIconForType(location.type);
-                const marker = L.marker([location.lat, location.lng], { icon }).addTo(map);
+            // Filter by current category
+            let placesToShow = preload;
+            if (currentCategory !== 'all') {
+                placesToShow = preload.filter(place => place.type === currentCategory);
+            }
+            
+            // Add markers for each place
+            placesToShow.forEach(place => {
+                const marker = L.circleMarker([place.lat, place.lng], {
+                    radius: 8,
+                    fillColor: typeColors[place.type] || '#1a237e',
+                    color: '#ffffff',
+                    weight: 2,
+                    fillOpacity: 0.8
+                }).addTo(map);
                 
                 marker.bindPopup(`
-                    <b>${location.name}</b><br>
-                    <small>${location.type.toUpperCase()}</small><br>
-                    <button onclick="showDirections(${location.lat}, ${location.lng})" 
-                            style="margin-top:5px; padding:5px 10px; background:#60f321; color:white; border:none; border-radius:5px; cursor:pointer;">
+                    <div style="font-weight: bold; color: ${typeColors[place.type]}; margin-bottom: 5px;">
+                        ${place.name}
+                    </div>
+                    <div style="font-size: 12px; color: #666;">
+                        Type: ${place.type.charAt(0).toUpperCase() + place.type.slice(1)}
+                    </div>
+                    <button onclick="getDirections(${place.lat}, ${place.lng}, '${place.name}')"
+                            style="margin-top: 8px; padding: 5px 10px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer;">
                         Get Directions
                     </button>
                 `);
                 
                 markers.push(marker);
             });
-            
-            // Update place count
-            document.getElementById('place-count').textContent = `(${preload.length})`;
         }
-        
-        function getIconForType(type) {
-            const icons = {
-                academic: L.divIcon({ html: "🏫", className: "", iconSize: [24, 24] }),
-                hostel: L.divIcon({ html: "🏠", className: "", iconSize: [24, 24] }),
-                cafeteria: L.divIcon({ html: "🍴", className: "", iconSize: [24, 24] }),
-                library: L.divIcon({ html: "📚", className: "", iconSize: [24, 24] }),
-                sports: L.divIcon({ html: "⚽", className: "", iconSize: [24, 24] }),
-                admin: L.divIcon({ html: "🏢", className: "", iconSize: [24, 24] })
-            };
-            return icons[type] || icons.academic;
-        }
-        
-        function showDirections(lat, lng) {
-            window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
-        }
-        
-        // Chatbot Functions
-        function initChatbot() {
-            // ... COPY ALL YOUR CHATBOT CODE HERE ...
-        }
-        
-        // Search Functions
-        function initSearch() {
-            // ... COPY ALL YOUR SEARCH CODE HERE ...
-        }
-        
-        // Layer Switcher
-        function initLayerSwitcher() {
-            // ... COPY YOUR LAYER SWITCHER CODE ...
-        }
-        
-        // QR Modal
-        function initQRModal() {
-            // ... COPY YOUR QR MODAL CODE ...
-        }
-        
-        // Logout Function
-        document.getElementById('btn-login').addEventListener('click', function() {
-            fetch('/logout')
-                .then(() => {
-                    window.location.href = '/';
+
+        function addPersonnelMarkers() {
+            personnel.forEach(person => {
+                                const icon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div style="background: #ff0000; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">👔</div>`,
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15]
                 });
-        });
-        
-        // My Location Button
-        document.getElementById('find-me').addEventListener('click', function() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(position => {
-                    const userLat = position.coords.latitude;
-                    const userLng = position.coords.longitude;
-                    
-                    L.marker([userLat, userLng], {
-                        icon: L.divIcon({ html: "📍", className: "", iconSize: [30, 30] })
-                    }).addTo(map).bindPopup("You are here!").openPopup();
-                    
-                    map.setView([userLat, userLng], 18);
-                    
-                    // Show toast
-                    showToast("📍 Your location found!");
-                });
-            } else {
-                showToast("GPS not supported");
-            }
-        });
-        
-        function showToast(message) {
-            // Simple toast notification
-            const toast = document.createElement('div');
-            toast.style.cssText = `
-                position: fixed;
-                bottom: 20px;
-                left: 50%;
-                transform: translateX(-50%);
-                background: #60f321;
-                color: white;
-                padding: 12px 24px;
-                border-radius: 10px;
-                z-index: 10000;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            `;
-            toast.textContent = message;
-            document.body.appendChild(toast);
-            
-            setTimeout(() => {
-                toast.remove();
-            }, 3000);
-        }
-        
-        // Category filtering
-        document.querySelectorAll('.chip').forEach(chip => {
-            chip.addEventListener('click', function() {
-                document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-                this.classList.add('active');
                 
-                const type = this.dataset.type;
-                filterMarkers(type);
+                const marker = L.marker([person.lat, person.lng], { icon: icon }).addTo(map);
+                
+                marker.bindPopup(`
+                    <div style="font-weight: bold; color: #d32f2f; margin-bottom: 5px;">
+                        ${personnelIcons[person.icon] || '👔'} ${person.title}
+                    </div>
+                    <div style="font-size: 13px; margin-bottom: 3px;">
+                        <strong>${person.name}</strong>
+                    </div>
+                    <div style="font-size: 11px; color: #666; margin-bottom: 5px;">
+                        ${person.office}<br>
+                        Room: ${person.room}
+                    </div>
+                    <button onclick="showHVIModalFromMap(${JSON.stringify(person).replace(/"/g, '&quot;')})"
+                            style="margin-top: 5px; padding: 5px 10px; background: #d32f2f; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">
+                        View Details
+                    </button>
+                `);
+                
+                markers.push(marker);
             });
-        });
-        
-        function filterMarkers(type) {
-            markers.forEach(marker => {
-                if (type === 'all') {
-                    map.addLayer(marker);
+        }
+
+        function highlightLocation(name) {
+            // Remove previous highlight
+            if (highlightedMarker) {
+                map.removeLayer(highlightedMarker);
+                highlightedMarker = null;
+            }
+            
+            // Find place
+            const place = preload.find(p => p.name.toLowerCase() === name.toLowerCase());
+            if (!place) return;
+            
+            // Add highlight marker
+            highlightedMarker = L.circleMarker([place.lat, place.lng], {
+                radius: 15,
+                fillColor: '#FFEB3B',
+                color: '#FF9800',
+                weight: 3,
+                fillOpacity: 0.7
+            }).addTo(map);
+            
+            // Open popup
+            highlightedMarker.bindPopup(`
+                <div style="font-weight: bold; color: ${typeColors[place.type]};">
+                    📍 ${place.name}
+                </div>
+                <div style="font-size: 12px; color: #666;">
+                    Currently viewing this location
+                </div>
+            `).openPopup();
+            
+            // Center map on location
+            map.setView([place.lat, place.lng], 18);
+            
+            showToast(`📍 Showing ${place.name}`);
+        }
+
+        /* -----------------------------
+           Map Controls
+           ----------------------------- */
+        function setupMapControls() {
+            // Zoom in
+            document.getElementById('zoomInBtn').addEventListener('click', () => {
+                map.zoomIn();
+            });
+            
+            // Zoom out
+            document.getElementById('zoomOutBtn').addEventListener('click', () => {
+                map.zoomOut();
+            });
+            
+            // Locate
+            document.getElementById('locateBtn').addEventListener('click', () => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        position => {
+                            const { latitude, longitude } = position.coords;
+                            map.setView([latitude, longitude], 17);
+                            
+                            // Add user location marker
+                            if (highlightedMarker) map.removeLayer(highlightedMarker);
+                            highlightedMarker = L.circleMarker([latitude, longitude], {
+                                radius: 10,
+                                fillColor: '#2196F3',
+                                color: '#ffffff',
+                                weight: 3,
+                                fillOpacity: 0.8
+                            }).addTo(map);
+                            
+                            highlightedMarker.bindPopup(`
+                                <div style="font-weight: bold; color: #2196F3;">
+                                    <i class="fas fa-user"></i> Your Location
+                                </div>
+                                <div style="font-size: 11px; color: #666;">
+                                    ${latitude.toFixed(6)}, ${longitude.toFixed(6)}
+                                </div>
+                            `).openPopup();
+                            
+                            showToast('📍 Showing your current location');
+                        },
+                        error => {
+                            showToast('❌ Could not get your location');
+                        }
+                    );
                 } else {
-                    const markerType = marker.options.icon.options.html;
-                    const typeIcons = {
-                        'academic': '🏫',
-                        'hostel': '🏠', 
-                        'cafeteria': '🍴',
-                        'library': '📚',
-                        'sports': '⚽',
-                        'admin': '🏢'
-                    };
-                    
-                    if (typeIcons[type] === markerType) {
-                        map.addLayer(marker);
-                    } else {
-                        map.removeLayer(marker);
-                    }
+                    showToast('❌ Geolocation not supported');
                 }
             });
         }
+
+        function changeMapView(viewType) {
+            // Update active button
+            document.querySelectorAll('.map-option').forEach(opt => opt.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Remove existing tile layer
+            map.eachLayer(layer => {
+                if (layer instanceof L.TileLayer) {
+                    map.removeLayer(layer);
+                }
+            });
+            
+            // Add new tile layer based on view type
+            let tileUrl;
+            switch(viewType) {
+                case 'streets':
+                    tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+                    break;
+                case 'satellite':
+                    tileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+                    break;
+                case 'terrain':
+                    tileUrl = 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png';
+                    break;
+                default: // map
+                    tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+            }
+            
+            L.tileLayer(tileUrl, {
+                attribution: viewType === 'satellite' 
+                    ? 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                    : '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            // Re-add markers
+            addMarkers();
+            addPersonnelMarkers();
+            
+            currentMapLayer = viewType;
+            showToast(`🗺️ Changed to ${viewType} view`);
+        }
+
+        /* -----------------------------
+           HVI Modal Functions
+           ----------------------------- */
+        function showHVIModal(person) {
+            currentHVI = person;
+            document.getElementById('hvi-name').textContent = person.name;
+            document.getElementById('hvi-title').textContent = person.title;
+            document.getElementById('hvi-office').textContent = person.office;
+            document.getElementById('hvi-room').textContent = person.room;
+            document.getElementById('hvi-campus').textContent = person.campus;
+            document.getElementById('hvi-phone').textContent = person.phone;
+            
+            const modal = document.getElementById('hvi-modal');
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function showHVIModalFromMap(person) {
+            showHVIModal(person);
+        }
+
+        function closeHVIModal() {
+            const modal = document.getElementById('hvi-modal');
+            modal.classList.remove('show');
+            document.body.style.overflow = 'auto';
+            currentHVI = null;
+        }
+
+        function showHVIOnMap() {
+            if (!currentHVI) return;
+            closeHVIModal();
+            
+            // Remove previous highlight
+            if (highlightedMarker) {
+                map.removeLayer(highlightedMarker);
+                highlightedMarker = null;
+            }
+            
+            // Add highlight for HVI
+            const icon = L.divIcon({
+                className: 'custom-div-icon',
+                html: `<div style="background: #d32f2f; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 20px; border: 3px solid white; box-shadow: 0 3px 10px rgba(0,0,0,0.3);">👑</div>`,
+                iconSize: [40, 40],
+                iconAnchor: [20, 20]
+            });
+            
+            highlightedMarker = L.marker([currentHVI.lat, currentHVI.lng], { icon: icon }).addTo(map);
+            
+            highlightedMarker.bindPopup(`
+                <div style="font-weight: bold; color: #d32f2f; font-size: 14px;">
+                    ${personnelIcons[currentHVI.icon] || '👔'} ${currentHVI.title}
+                </div>
+                <div style="font-size: 13px; margin: 5px 0;">
+                    <strong>${currentHVI.name}</strong>
+                </div>
+                <div style="font-size: 11px; color: #666;">
+                    ${currentHVI.office}<br>
+                    Room: ${currentHVI.room}
+                </div>
+                <button onclick="getDirections(${currentHVI.lat}, ${currentHVI.lng}, '${currentHVI.name}')"
+                        style="margin-top: 8px; padding: 6px 12px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px;">
+                    Get Directions
+                </button>
+            `).openPopup();
+            
+            map.setView([currentHVI.lat, currentHVI.lng], 18);
+            showToast(`📍 Showing ${currentHVI.title}'s office`);
+        }
+
+        function getHVIDirections() {
+            if (!currentHVI) return;
+            getDirections(currentHVI.lat, currentHVI.lng, currentHVI.name);
+            closeHVIModal();
+        }
+
+        /* -----------------------------
+           Directions Function
+           ----------------------------- */
+        function getDirections(lat, lng, destinationName) {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        const userLat = position.coords.latitude;
+                        const userLng = position.coords.longitude;
+                        
+                        // Create directions URL (Google Maps)
+                        const directionsUrl = `https://www.google.com/maps/dir/${userLat},${userLng}/${lat},${lng}`;
+                        
+                        // Open in new tab
+                        window.open(directionsUrl, '_blank');
+                        
+                        showToast(`📍 Opening directions to ${destinationName}`);
+                    },
+                    () => {
+                        // If can't get user location, show destination only
+                        const destinationUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+                        window.open(destinationUrl, '_blank');
+                        showToast(`📍 Opening ${destinationName} on map`);
+                    }
+                );
+            } else {
+                // Fallback: just show destination
+                const destinationUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+                window.open(destinationUrl, '_blank');
+                showToast(`📍 Opening ${destinationName} on map`);
+            }
+        }
+
+        /* -----------------------------
+           Search Functionality
+           ----------------------------- */
+        // Build unified search items
+        const searchItems = [];
+        preload.forEach(p => {
+            searchItems.push({
+                id: `place:${p.name}`,
+                kind: 'place',
+                name: p.name,
+                type: p.type,
+                lat: p.lat,
+                lng: p.lng
+            });
+        });
+        personnel.forEach(p => {
+            searchItems.push({
+                id: `person:${p.name}`,
+                kind: 'person',
+                title: p.title,
+                name: p.name,
+                office: p.office,
+                room: p.room,
+                campus: p.campus,
+                phone: p.phone,
+                lat: p.lat,
+                lng: p.lng,
+                icon: p.icon
+            });
+        });
+
+        const searchInput = document.getElementById('global-search');
+        const navSuggestionListEl = document.getElementById('nav-suggestion-list');
+        let suggestions = [];
+        let activeSuggestionIndex = -1;
+
+        function normalizeText(s) { 
+            return (s || "").toString().trim().toLowerCase(); 
+        }
+
+        function computeSuggestions(query) {
+            if (!query || query.trim().length === 0) return [];
+            const q = normalizeText(query);
+            
+            // Check for HVI patterns first
+            const hviPatterns = [
+                {keywords: ['director general', 'dg', 'director-general'], matchTitle: 'Director General'},
+                {keywords: ['dean computer', 'dean cs', 'dean cse', 'dean computer engineering'], matchTitle: 'Dean - School of Computer Engineering'},
+                {keywords: ['dean student welfare', 'dsw', 'dean sw'], matchTitle: 'Dean - Student Welfare'},
+                {keywords: ['registrar', 'rgstr'], matchTitle: 'Registrar'},
+                {keywords: ['dean management', 'dean ksom', 'dean som'], matchTitle: 'Dean - School of Management'},
+                {keywords: ['sasmita'], matchName: 'Prof. Sasmita Samanta'},
+                {keywords: ['amiya', 'rath'], matchName: 'Prof. Amiya Kumar Rath'},
+                {keywords: ['jnyana', 'mohanty'], matchName: 'Prof. Jnyana Ranjan Mohanty'},
+                {keywords: ['mrutyunjay', 'suar'], matchName: 'Dr. Mrutyunjay Suar'},
+                {keywords: ['biswajit', 'satpathy'], matchName: 'Prof. Biswajit Satpathy'}
+            ];
+
+            for (const pattern of hviPatterns) {
+                for (const keyword of pattern.keywords) {
+                    if (q.includes(keyword)) {
+                        if (pattern.matchTitle) {
+                            const person = personnel.find(p => p.title === pattern.matchTitle);
+                            if (person) return [person];
+                        } else if (pattern.matchName) {
+                            const person = personnel.find(p => p.name === pattern.matchName);
+                            if (person) return [person];
+                        }
+                    }
+                }
+            }
+
+            const scored = searchItems.map(item => {
+                const text = (item.name || item.title || "").toLowerCase();
+                let score = 0;
+                
+                if (text === q) score += 1000;
+                else if (text.startsWith(q)) score += 600;
+                else if (text.includes(q)) score += 400;
+                
+                const qWords = q.split(/\s+/);
+                qWords.forEach(w => {
+                    if (text.includes(w)) score += 30;
+                });
+                
+                if (item.kind === 'place') score += 2;
+                return { item, score };
+            }).filter(x => x.score > 0).sort((a, b) => b.score - a.score).slice(0, 10);
+            
+            return scored.map(s => s.item);
+        }
+
+        function renderNavSuggestions(list) {
+            navSuggestionListEl.innerHTML = '';
+            if (!list || list.length === 0) {
+                navSuggestionListEl.style.display = 'none';
+                return;
+            }
+            
+            list.forEach((it, idx) => {
+                const div = document.createElement('div');
+                div.className = 'suggestion-item' + (idx === activeSuggestionIndex ? ' active' : '');
+                
+                if (it.kind === 'place') {
+                    div.innerHTML = `
+                        <strong>${it.name}</strong>
+                        <div class="meta">${it.type.charAt(0).toUpperCase() + it.type.slice(1)}</div>
+                    `;
+                } else {
+                    div.innerHTML = `
+                        <strong>${it.title}</strong>
+                        <div class="meta">${it.name}</div>
+                    `;
+                }
+                
+                div.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    selectSuggestionNav(it);
+                });
+                navSuggestionListEl.appendChild(div);
+            });
+            navSuggestionListEl.style.display = 'block';
+        }
+
+        function selectSuggestionNav(item) {
+            navSuggestionListEl.style.display = 'none';
+            searchInput.value = item.name || item.title || '';
+            activeSuggestionIndex = -1;
+            
+            if (item.kind === 'place') {
+                highlightLocation(item.name);
+            } else if (item.kind === 'person') {
+                const p = personnel.find(x => x.name === item.name && x.title === item.title);
+                if (p) showHVIModal(p);
+            }
+        }
+
+        // Search input event listeners
+        searchInput.addEventListener('input', (e) => {
+            const q = e.target.value;
+            suggestions = computeSuggestions(q);
+            activeSuggestionIndex = -1;
+            renderNavSuggestions(suggestions);
+        });
+
+        searchInput.addEventListener('keydown', (e) => {
+            if (navSuggestionListEl.style.display === 'none' && e.key === 'Enter') {
+                const q = searchInput.value.trim();
+                if (q) {
+                    const hvi = detectHVIInQuery(q);
+                    if (hvi) {
+                        showHVIModal(hvi);
+                    } else {
+                        highlightLocation(q);
+                    }
+                }
+                return;
+            }
+            
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (!suggestions || suggestions.length === 0) return;
+                activeSuggestionIndex = Math.min(activeSuggestionIndex + 1, suggestions.length - 1);
+                renderNavSuggestions(suggestions);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (!suggestions || suggestions.length === 0) return;
+                activeSuggestionIndex = Math.max(activeSuggestionIndex - 1, 0);
+                renderNavSuggestions(suggestions);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (suggestions && suggestions.length > 0 && activeSuggestionIndex >= 0) {
+                    selectSuggestionNav(suggestions[activeSuggestionIndex]);
+                } else {
+                    const q = searchInput.value.trim();
+                    if (q) {
+                        const hvi = detectHVIInQuery(q);
+                        if (hvi) {
+                            showHVIModal(hvi);
+                        } else {
+                            highlightLocation(q);
+                        }
+                    }
+                }
+            } else if (e.key === 'Escape') {
+                navSuggestionListEl.style.display = 'none';
+                activeSuggestionIndex = -1;
+            }
+        });
+
+        // Hide suggestions on outside click
+        document.addEventListener('click', (e) => {
+            if (!searchInput.contains(e.target) && !navSuggestionListEl.contains(e.target)) {
+                navSuggestionListEl.style.display = 'none';
+                activeSuggestionIndex = -1;
+            }
+        });
+
+        /* -----------------------------
+           HVI Detection in Query
+           ----------------------------- */
+        function detectHVIInQuery(query) {
+            const lowerQuery = query.toLowerCase();
+            const hviPatterns = [
+                {keywords: ['director general', 'dg', 'director-general'], matchTitle: 'Director General'},
+                {keywords: ['dean computer', 'dean cs', 'dean cse', 'dean computer engineering'], matchTitle: 'Dean - School of Computer Engineering'},
+                {keywords: ['dean student welfare', 'dsw', 'dean sw'], matchTitle: 'Dean - Student Welfare'},
+                {keywords: ['registrar', 'rgstr'], matchTitle: 'Registrar'},
+                {keywords: ['dean management', 'dean ksom', 'dean som'], matchTitle: 'Dean - School of Management'},
+                {keywords: ['sasmita'], matchName: 'Prof. Sasmita Samanta'},
+                {keywords: ['amiya', 'rath'], matchName: 'Prof. Amiya Kumar Rath'},
+                {keywords: ['jnyana', 'mohanty'], matchName: 'Prof. Jnyana Ranjan Mohanty'},
+                {keywords: ['mrutyunjay', 'suar'], matchName: 'Dr. Mrutyunjay Suar'},
+                {keywords: ['biswajit', 'satpathy'], matchName: 'Prof. Biswajit Satpathy'}
+            ];
+
+            for (const pattern of hviPatterns) {
+                for (const keyword of pattern.keywords) {
+                    if (lowerQuery.includes(keyword)) {
+                        if (pattern.matchTitle) {
+                            const person = personnel.find(p => p.title === pattern.matchTitle);
+                            if (person) return person;
+                        } else if (pattern.matchName) {
+                            const person = personnel.find(p => p.name === pattern.matchName);
+                            if (person) return person;
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        /* -----------------------------
+           Category Selection
+           ----------------------------- */
+        function selectCategory(category) {
+            // Update active category
+            currentCategory = category;
+            
+            // Update UI
+            document.querySelectorAll('.category').forEach(cat => cat.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            
+            // Update map markers
+            addMarkers();
+            
+            // Show toast
+            if (category === 'all') {
+                showToast(`📚 Showing all ${preload.length} locations`);
+            } else {
+                const filtered = preload.filter(p => p.type === category);
+                showToast(`📚 Showing ${filtered.length} ${category} locations`);
+            }
+        }
+
+        /* -----------------------------
+           Toast Notification
+           ----------------------------- */
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        /* -----------------------------
+           Initialization
+           ----------------------------- */
+        window.onload = function() {
+            // Check login
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            const userEmail = localStorage.getItem('userEmail');
+            
+            if (!isLoggedIn || isLoggedIn !== 'true') {
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // Set user email
+            if (userEmail) {
+                document.getElementById('userEmail').textContent = userEmail;
+            }
+            
+            // Update places count
+            document.getElementById('placesCount').textContent = preload.length;
+            
+            // Initialize map
+            initMap();
+        };
+        
+        // QR Scanner button
+        document.getElementById('qrScannerBtn').addEventListener('click', function() {
+            showToast('📷 QR Scanner would open here. Point camera at a KIIT QR code.');
+            // In a real app, this would open the camera for QR scanning
+        });
+        
+        // Logout functionality
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('isLoggedIn');
+                localStorage.removeItem('userEmail');
+                window.location.href = 'index.html';
+            }
+        });
     </script>
 </body>
 </html>
